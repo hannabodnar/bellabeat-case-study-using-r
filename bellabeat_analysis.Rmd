@@ -1,0 +1,319 @@
+---
+title: "Bellabeat Data Analysis"
+author: "Hanna Tuple"
+date: "2022-12-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## **About Bellabeat**
+Bellabeat, a high-tech company that manufactures health-focused products was founded in 2013 by Urška Sršen and Sando Mur. Bellabeat collects different types of data to provide feedback to women about their health. In an effort to increase awareness of their products, Sršen believes that identifying trends in other smart devices will provide insights to customer preferences and help their marketing strategies. 
+
+Shakeholders
+* Urška Sršen - Cofounder and Chief Creative Officer
+* Sando Mur - Cofounder and essential member of executive team
+* Marketing Analytics Team
+
+## **Business Task** 
+Analyze other smart device data and identify trends in consumer use to improve marketing strategies and boost company growth.
+
+## **Questions for Analysis**
+1) What are some trends in smart device usage?
+2) How could these trends apply to bellabeat customers?
+3) How could these trends help influence Bellabeat marketing strategy?
+
+
+## **Data Sources**
+### **Loading packages in R**
+
+The following packages will be necessary for cleaning and analyzing the data. 
+
+```{r installing packages}
+install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+```
+
+## **The Dataset**
+The dataset used in this case study is from the [FitBit Fitness Tracker Data](https://www.kaggle.com/datasets/arashnic/fitbit?resource=download). The data was obtained from thirty individuals who reported their personal tracking data. 
+
+This dataset consists of eighteen CSV documents, however, for this analysis we will examine the following:
+
+* dailyActivity
+* sleepDay
+* weightLogInfo
+* dailyIntensities
+
+### **Importing the Data**
+```{r}
+dailyActivity <- read_csv("dailyActivity_merged.csv")
+head(dailyActivity)
+```
+
+```{r}
+sleepDay <- read_csv("sleepDay_merged.csv")
+head(sleepDay)
+```
+
+
+```{r}
+weightLogInfo <- read_csv("weightLogInfo_merged.csv")
+head(weightLogInfo)
+```
+
+```{r}
+dailyIntensities <- read_csv("dailyIntensities_merged.csv")
+head(dailyIntensities)
+```
+
+
+### **Cleaning and Manipulation of Data**
+
+To get a better look at the data, I identified all the distinct participants in each dataset. 
+
+```{r distinct users}
+n_distinct(dailyActivity$Id)
+n_distinct(dailyIntensities$Id)
+n_distinct(sleepDay$Id)
+n_distinct(weightLogInfo$Id)
+```
+There are 33 participants listed in both the dailyActivity and dailyIntensities datasets. The sleepDay dataset contains 24 participants and only 8 in the weightLogInfo. 
+
+To verify each observation is unique, we will check the data for any duplicates. 
+
+```{r duplicate observations}
+sum(duplicated(dailyActivity))
+sum(duplicated(dailyIntensities))
+sum(duplicated(sleepDay))
+sum(duplicated(weightLogInfo))
+```
+
+It appears that there are three duplicates in the sleepDay dataset. We will remove and verify again for duplicates. 
+
+```{r eliminating duplicates}
+dailyActivity <- dailyActivity %>%
+  distinct() %>%
+  drop_na()
+
+sum(duplicated(dailyActivity))
+```
+
+
+## **Summary and Analysis**
+
+With this information, let's review some summary statistics. To focus in on the data, we will take the average data from every participant and then take the average of the group data. 
+
+**Distance, Steps and Calories**
+
+```{r average participant data}
+user_average <- dailyActivity %>%
+  group_by(Id) %>%
+  select(TotalDistance,
+         TotalSteps,
+         Calories) %>%
+  summarize (distance = mean(TotalDistance), steps = mean(TotalSteps), calories = mean(Calories)) 
+head(user_average)
+```
+
+```{r average group data}
+average_activity <- user_average %>%
+  summarize (distance = mean(distance), steps = mean(steps), calories = mean(calories))
+head(average_activity)
+```
+
+
+In this dataset, we want to determine if there are any relationships between the distance and steps a participant makes and the amount of calories they burn. By looking at the data, there doesn't seem to be any obvious patterns, so we can graph the data to get a better visualization.
+
+
+```{r plotting steps, calories and distance}
+ggplot(user_average, aes(x = steps, y = calories)) +
+  geom_jitter() +
+  geom_smooth(color = "blue") + 
+  labs(title = "Steps vs Calories", x = "Steps", y = "Calories") +
+  theme(plot.title = element_text(size = 14))
+ggplot(user_average, aes(x=distance, y=steps)) + 
+  geom_jitter() + 
+  geom_smooth(color = "blue") + 
+  labs(title = "Distance vs Steps", x = "Distance", y = "Steps") +
+  theme(plot.title = element_text(size = 14))
+```
+
+From our graphs:
+* There is a positive correlation between the amount of steps and the calories burned.
+* The farther the distance the more steps taken. 
+* Looking at both graphs, there are instances where participants had a shorter distance and less amount of steps but burned more calories. 
+
+
+**Sleep**
+
+```{r average participant sleep}
+average_sleep <- sleepDay %>%
+  group_by(Id) %>%
+  select(TotalTimeInBed,
+         TotalMinutesAsleep) %>%
+  summarize (time_in_bed = mean(TotalTimeInBed), minutes_asleep = mean(TotalMinutesAsleep))
+head(average_sleep)
+```
+
+```{r group sleep average}
+group_sleep <- average_sleep %>%
+  summarize(average_time_in_bed = mean(time_in_bed), average_sleep_time = mean(minutes_asleep))
+head(group_sleep)
+```
+
+```{r plotting sleep data}
+ggplot(average_sleep, aes(x = minutes_asleep, y = time_in_bed)) +
+  geom_point() +
+  geom_jitter() +
+  geom_smooth(color = "blue") +
+  labs(title = "Time in Bed vs Time Asleep", x = "Minutes Asleep", y = "Minutes in Bed") +
+  theme(plot.title = element_text(size = 14))
+```
+
+Looking at this data, we see a positive relationship between the amount of time in bed and the amount of time sleeping. Let's calculate the average amount of time a participant is in bed while they are not sleeping. 
+
+
+```{r average time in bed not sleeping}
+no_sleep <- data.frame(A = c(420.0959), B = c(377.6475))
+no_sleep$C <- (no_sleep$A - no_sleep$B)
+head(no_sleep)
+```
+
+
+From this calculation, we see that the time spent in bed while not sleeping is 42.4484. As assumed, we spend most of the time in bed sleeping.
+
+
+**Active Minutes by Intensity**
+
+```{r}
+active_minutes <- dailyIntensities %>%
+  group_by(Id) %>%
+  select(LightlyActiveMinutes,
+         FairlyActiveMinutes,
+         VeryActiveMinutes,
+         SedentaryMinutes) %>%
+  summarize (LightlyActiveMinutes = mean(LightlyActiveMinutes), FairlyActiveMinutes = mean(FairlyActiveMinutes), VeryActiveMinutes = mean(VeryActiveMinutes), SedentaryMinutes = mean(SedentaryMinutes)) 
+head(active_minutes)
+```
+
+```{r}
+average_minutes <- active_minutes %>%
+  summarize (LightlyActiveMinutes = mean(LightlyActiveMinutes), FairlyActiveMinutes = mean(FairlyActiveMinutes), VeryActiveMinutes = mean(VeryActiveMinutes), SedentaryMinutes = mean(SedentaryMinutes))
+head(average_minutes)
+```
+
+
+Each person is active in their own way with various intensity levels. This set allows us to explore the average amount of time spent in each category. 
+
+
+```{r intensity chart}
+intensity <- average_minutes %>%
+  mutate(total_count = sum(average_minutes))
+
+percent_intensity <- intensity %>%
+  summarize(lightly_active = LightlyActiveMinutes / total_count, fairly_active = FairlyActiveMinutes / total_count, very_active = FairlyActiveMinutes / total_count, sedentary_active = SedentaryMinutes / total_count)
+
+percent_intensity <- data.frame(Type = c('Lightly Active', 'Fairly Active', 'Very Active', 'Sedentary'), Percent = c(0.1564, 0.0108, 0.0108, 0.8161))
+
+library(scales)
+percent_intensity$Percent <- percent(percent_intensity$Percent, accuracy=1)
+
+head(percent_intensity)
+
+```
+
+
+Looking at this tibble, the average participant spends the majority of their time being sedentary. Otherwise, they opt to be lightly active. 
+
+
+**Distance by Intensity**
+
+After reviewing the amount of time spent at each intensity level, we can break down the average distance achieved by a participant at each intensity level. 
+
+
+```{r}
+user_distance <- dailyIntensities %>%
+  group_by(Id) %>%
+  select(LightActiveDistance,
+         ModeratelyActiveDistance,
+         VeryActiveDistance) %>%
+  summarize (lightly_active = mean(LightActiveDistance), moderately_active = mean(ModeratelyActiveDistance), very_active = mean(VeryActiveDistance))
+head(user_distance)
+```
+
+```{r}
+average_distance <- user_distance %>%
+  summarize (lightly_average = mean(lightly_active), moderately_average = mean(moderately_active), very_average = mean(very_active))
+head(average_distance)
+```
+
+
+According to these averages, the group maintained a higher distance at a lower intensity. Also, the distance average for being very active is higher than moderately active. 
+
+
+**Weight & BMI**
+ 
+Considering the fitness data, let's shift our focus to the health data. We can look at the participants weight and BMI measurements and the group average. 
+
+```{r}
+weight_log <- weightLogInfo %>%
+  group_by(Id) %>%
+  select(WeightPounds,
+         BMI) %>%
+  summarize(mean_weight = mean(WeightPounds), mean_bmi = mean(BMI))
+head(weight_log)
+```
+```{r}
+average_weight_log <- weight_log %>%
+  summarize (mean_weight = mean(mean_weight), mean_bmi = mean(mean_bmi))
+head(average_weight_log)
+```
+
+The average group BMI is 27.99. According to the [Center for Disease Control and Prevention](https://www.cdc.gov/healthyweight/assessing/bmi/adult_bmi/english_bmi_calculator/bmi_calculator.html), a healthy adult weight has a BMI that ranges between 18.5-24.9. This average is considered overweight. 
+
+
+### **Combined Data**
+
+I'm going to combine some datasets to explore any potential relationships. 
+
+
+```{r}
+combinedSleepActivity <- merge(average_sleep,user_average, by= ("Id"))
+head(combinedSleepActivity)
+
+```
+
+
+Consider the amount of time asleep and total steps taken in a day. 
+
+
+```{r minutes asleep vs total steps}
+ggplot(data = combinedSleepActivity, aes(x = steps, y = minutes_asleep)) +
+  geom_histogram(stat = "identity", fill = 'red') +
+  labs(title = "Minutes Asleep vs. Total Steps", x = "Total Steps", y = "Minutes Asleep") +
+  theme(plot.title = element_text(size = 14))
+```
+
+
+By this graph, it looks like there is no correlation between the amount of time slept and the total steps taken in a day. 
+
+
+## **Recommendations** 
+
+After analyzing and manipulating the data, there are some suggestions for the **Bellabeat Time** product. As the bellabeat app is connected to the watch, the watch can receive notifications directly from the app to alert users of their activities for the day. 
+
+1. Create a step and calorie goal that resets each day, so that users can be motivated to reach that goal.
+
+2. Have an alert to remind the user to engage in activity if they are sedentary for too long. 
+
+3. Recommend workouts with various lengths of time and intensity.
+
+Thank you for your interest in my project! This is my first analysis project using R and I would appreciate any recommendations or comments for improvement. 
+
