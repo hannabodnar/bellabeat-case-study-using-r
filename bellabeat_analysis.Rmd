@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## **About Bellabeat**
 Bellabeat, a high-tech company that manufactures health-focused products was founded in 2013 by Urška Sršen and Sando Mur. Bellabeat collects different types of data to provide feedback to women about their health. In an effort to increase awareness of their products, Sršen believes that identifying trends in other smart devices will provide insights to customer preferences and help their marketing strategies. 
 
-Shakeholders
+Stakeholders
 * Urška Sršen - Cofounder and Chief Creative Officer
 * Sando Mur - Cofounder and essential member of executive team
 * Marketing Analytics Team
